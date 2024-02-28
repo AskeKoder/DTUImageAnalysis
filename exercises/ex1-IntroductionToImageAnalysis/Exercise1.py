@@ -237,3 +237,123 @@ plt.hist(image_w400[:,:,1].ravel(),bins=256,color='Green',alpha=0.3)
 plt.hist(image_w400[:,:,2].ravel(),bins=256,color='Blue',alpha=0.3)
 plt.show()
 # %% Color channels ===============================================
+
+#Read image
+im_org = io.imread(in_dir + "DTUSign1.jpg")
+io.imshow(im_org)
+io.show()
+
+#Only show the red channel
+r_comp = im_org[:, :, 0]
+io.imshow(r_comp)
+plt.title('DTU sign image (Red)')
+io.show()
+
+# %%Visualize the R, G, and B components individually. 
+# Why does the DTU Compute sign look bright on the R channel
+# image and dark on the G and B channels?  Why do the walls of
+# the building look bright in all channels?
+fig, axs= plt.subplots(1,3, figsize=(15,5))
+axs[0].imshow(im_org[:, :, 0])
+axs[0].set_title('Red channel')
+axs[1].imshow(im_org[:, :, 1])
+axs[1].set_title('Green channel')
+axs[2].imshow(im_org[:, :, 2])
+axs[2].set_title('Blue channel')
+plt.show()
+
+# %%  Simple Image Manipulations ===================================
+
+# Show the image again and save it to disk as 
+# **DTUSign1-marked.jpg** using the `io.imsave` 
+# function. Try to save the image using different image
+# formats like for example PNG.*
+
+io.imshow(im_org)
+im_org[500:1000, 800:1500, :] = 0 #Insert a black rectangle
+io.imshow(im_org)
+io.imsave(in_dir + "DTUSign1-marked.PNG", im_org)
+# %%
+# Try to create a blue rectangle
+# around the DTU Compute sign and save the resulting image.
+
+#Read original image
+im_org = io.imread(in_dir + "DTUSign1.jpg")
+io.imshow(im_org)
+im_blue = im_org.copy()
+im_blue[1500:1800,2300:2800,[0,1]] = 0
+io.imshow(im_blue)
+
+# %% Try to automatically create an image based on
+#  **metacarpals.png** where the bones are colored blue. 
+#read image
+im_org = io.imread(in_dir + "metacarpals.png")
+
+#Standardize the image
+Y = im_org-np.mean(im_org,axis=1)
+Y = Y/np.std(im_org,axis=1)
+# Set values below 0 to 0
+Y[Y<0.0] = 0
+Y = Y/np.max(Y) * 255
+Y = Y.astype(np.uint8)
+Y = color.gray2rgb(Y)
+Y[:,:,[0,1]] = 0
+io.imshow(Y, vmin=np.min(Y), vmax=np.max(Y))
+
+# %% ## Advanced Image Visualisation=================================
+
+# Before implementing a fancy image analysis algorithm, it is very important
+#  to get an intuitive understanding of how the image *looks as seen from the 
+# computer*. The next set of tools can help to gain a better understanding.
+
+# In this example, we will work with an x-ray image of the human hand. Bones 
+# are hollow and we want to understand how a hollow structure looks on an image. 
+
+# Start by reading the image **metarcarpals.png**. To investigate the 
+# properties of the hollow bone, a grey-level profile can be sampled across 
+# the bone. The tool `profile_line` can be used to sample a profile across the 
+# bone:
+
+p = profile_line(im_org, (342, 77), (320, 160))
+plt.plot(p)
+plt.ylabel('Intensity')
+plt.xlabel('Distance along line')
+plt.show()
+
+
+# %%
+# An image can also be viewed as a landscape, 
+# where the height is equal to the grey level
+in_dir = "data/"
+im_name = "road.png"
+im_org = io.imread(in_dir + im_name)
+im_gray = color.rgb2gray(im_org)
+ll = 200
+im_crop = im_gray[40:40 + ll, 150:150 + ll]
+xx, yy = np.mgrid[0:im_crop.shape[0], 0:im_crop.shape[1]]
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+surf = ax.plot_surface(xx, yy, im_crop, rstride=1, cstride=1, cmap=plt.cm.jet,
+                       linewidth=0)
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.show()
+
+# %% ## DICOM images ===============================================
+
+# Typical images from the hospital are stored in the DICOM format. 
+#An example image from a computed tomography examination of abdominal area 
+#is used in the following.
+
+# Start by examining the header information using:
+in_dir = "data/"
+im_name = "1-442.dcm"
+ds = dicom.dcmread(in_dir + im_name)
+print(ds)
+
+# %% access image
+im = ds.pixel_array
+im.shape
+im.dtype
+io.imshow(im, vmin=-1000, vmax=1000, cmap='gray')
+io.show()
+
+# %%
