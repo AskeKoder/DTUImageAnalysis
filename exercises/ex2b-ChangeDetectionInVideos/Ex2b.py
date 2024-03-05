@@ -62,12 +62,13 @@ def capture_from_camera_and_show_images():
         #Create a binary image by applying thresholding
         T = 0.1 # 10% difference is our boundary 
         binary_img = dif_img > T # True/False array of pixels exceeding the threshold
-        F = sum(binary_img) / np.prod(binary_img.shape) # Number of pixels exceeding the threshold
+        F = sum(binary_img.reshape(-1,1).squeeze()) / np.prod(binary_img.shape) # Number of pixels exceeding the threshold
         A =  0.05 # 5% of the pixels change raise an alarm
         if F > A:
             alarm_str = f"Achtung! {F*100:.1f}% of the pixels changed"
             font = cv2.FONT_HERSHEY_COMPLEX
             cv2.putText(new_frame, alarm_str, (200, 200), font, 1, 1, 1)
+        binary_img = img_as_float(binary_img) # Convert to float
 
         # Keep track of frames-per-second (FPS)
         n_frames = n_frames + 1
@@ -82,7 +83,7 @@ def capture_from_camera_and_show_images():
         # Display the resulting frame
         show_in_moved_window('Input', new_frame, 0, 10)
         show_in_moved_window('Input gray', new_frame_gray, 600, 10)
-        show_in_moved_window('Difference image', dif_img, 1200, 10)
+        show_in_moved_window('Binary image', binary_img, 1200, 10)
 
         # Old frame is updated
         frame_gray = new_frame_gray
