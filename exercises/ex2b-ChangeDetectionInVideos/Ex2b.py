@@ -4,7 +4,7 @@ import numpy as np
 from skimage.util import img_as_float
 from skimage.util import img_as_ubyte
 
-#Add alarm function if somthing moves
+#Add alarm function if something moves
 
 
 def show_in_moved_window(win_name, img, x, y):
@@ -60,7 +60,7 @@ def capture_from_camera_and_show_images():
         dif_img = np.abs(new_frame_gray - frame_gray)
 
         #Create a binary image by applying thresholding
-        T = 0.1 # 10% difference is our boundary 
+        T = 0.2 # our boundary 
         binary_img = dif_img > T # True/False array of pixels exceeding the threshold
         F = sum(binary_img.reshape(-1,1).squeeze()) / np.prod(binary_img.shape) # Number of pixels exceeding the threshold
         A =  0.05 # 5% of the pixels change raise an alarm
@@ -68,7 +68,7 @@ def capture_from_camera_and_show_images():
             alarm_str = f"Achtung! {F*100:.1f}% of the pixels changed"
             font = cv2.FONT_HERSHEY_COMPLEX
             cv2.putText(new_frame, alarm_str, (200, 200), font, 1, 1, 1)
-        binary_img = img_as_float(binary_img) # Convert to float
+        binary_img = img_as_ubyte(binary_img) # Convert to 8-bit image
 
         # Keep track of frames-per-second (FPS)
         n_frames = n_frames + 1
@@ -83,10 +83,13 @@ def capture_from_camera_and_show_images():
         # Display the resulting frame
         show_in_moved_window('Input', new_frame, 0, 10)
         show_in_moved_window('Input gray', new_frame_gray, 600, 10)
+        show_in_moved_window('Difference image', dif_img, 1200, 10)
         show_in_moved_window('Binary image', binary_img, 1200, 10)
 
         # Old frame is updated
-        frame_gray = new_frame_gray
+        alpha = 0.95
+        frame_gray = alpha * frame_gray + (1-alpha)*new_frame_gray
+
 
         if cv2.waitKey(1) == ord('q'):
             stop = True
