@@ -157,4 +157,129 @@ thres = 5
 img_thresh = threshold_image(img_gray,thres)
 io.imshow(img_thresh)
 
+# %% Segmentation on color images
+img_org = io.imread('data/DTUSigns2.jpg')
+io.imshow(img_org)
+
+#At first we want to separate to blue signe from the background
+def detect_dtu_signs(img_org):
+    #Separate the color channels
+    r_comp = img_org[:, :, 0]
+    g_comp = img_org[:, :, 1]
+    b_comp = img_org[:, :, 2]
+    #Create a mask for the blue sign
+    segm_blue = (r_comp < 10) & (g_comp > 85) & (g_comp < 105) & (b_comp > 180) & (b_comp < 200)
+    return segm_blue
+
+# %% Extend the function so it can also detect red signs
+
+#At first we must find out how the red sign looks to the computer
+from skimage.measure import profile_line
+start = (1300,2315)
+end = (1700, 2315)
+pred = profile_line(img_org[:,:,0], start, end)
+pgreen = profile_line(img_org[:,:,1], start, end)
+pblue = profile_line(img_org[:,:,2], start, end)
+plt.plot(pred, color='r')
+plt.plot(pgreen, color='g')
+plt.plot(pblue, color='b')
+plt.yticks(np.array([0, 50, 100, 150,160,170,180,190, 200, 255]))
+plt.grid()
+#%%
+def detect_dtu_signs(img_org):
+    #Separate the color channels
+    r_comp = img_org[:, :, 0]
+    g_comp = img_org[:, :, 1]
+    b_comp = img_org[:, :, 2]
+    #Create a mask for the blue sign
+    segm_blue = (r_comp < 10) & (g_comp > 85) & (g_comp < 105) & (b_comp > 180) & (b_comp < 200)
+        #Create a mask for the red sign
+    segm_red = (r_comp > 160) & (r_comp < 175) & (g_comp > 50) & (g_comp < 70) & (b_comp > 50) & (b_comp < 70)
+    return segm_blue, segm_red
+
+# %% Testing the function
+segm_blue, segm_red = detect_dtu_signs(img_org)
+fig, axs=plt.subplots(1,2)
+axs[0].imshow(segm_blue)
+axs[1].imshow(segm_red)
+
+
+# %%Sometimes it gives better segmentation results when 
+# the tresholding is done in HSI (also known as HSV - hue, 
+# saturation, value) space. Start by reading the  
+# **DTUSigns2.jpg** image, convert it to HSV and show the 
+# hue and value
+
+#We already have the image
+io.imshow(img_org)
+
+#Convert to HSV
+hsv_img = color.rgb2hsv(img_org)
+#Show the hue and value
+hue_img = hsv_img[:, :, 0]
+value_img = hsv_img[:, :, 2]
+fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, figsize=(8, 2))
+ax0.imshow(img_org)
+ax0.set_title("RGB image")
+ax0.axis('off')
+ax1.imshow(hue_img, cmap='hsv')
+ax1.set_title("Hue channel")
+ax1.axis('off')
+ax2.imshow(value_img)
+ax2.set_title("Value channel")
+ax2.axis('off')
+
+fig.tight_layout()
+io.show()
+
+# %%**Exercise 15:** *Now make a sign segmentation 
+# function using tresholding in HSV space and locate both
+# the blue and the red sign.*
+
+#Explorative analysis
+#%% Red sign
+start_red = (1300,2315)
+end_red = (1700, 2315)
+ph = profile_line(hsv_img[:,:,0], start_red, end_red)
+ps = profile_line(hsv_img[:,:,1], start_red, end_red)
+pv = profile_line(hsv_img[:,:,2], start_red, end_red)
+plt.plot(ph, 'b')
+plt.plot(ps, color='r')
+plt.plot(pv, color='g')
+plt.show()
+
+#%%Blue sign
+start_blue = (1500,800)
+end_blue = (2400, 800)
+ph = profile_line(hsv_img[:,:,0], start_blue, end_blue)
+ps = profile_line(hsv_img[:,:,1], start_blue, end_blue)
+pv = profile_line(hsv_img[:,:,2], start_blue, end_blue)
+plt.plot(ph, 'b')
+plt.plot(ps, color='r')
+plt.plot(pv, color='g')
+plt.show()
+
+
+#%%Function
+def HSV_detect_dtu_signs(img_org):
+    #Convert to HSV
+    hsv_img = color.rgb2hsv(img_org)
+    #Separate the color channels
+    h_comp = hsv_img[:, :, 0]
+    s_comp = hsv_img[:, :, 1]
+    v_comp = hsv_img[:, :, 2]
+    #Create a mask for the blue sign
+    segm_blue = (h_comp > 0.55) & (h_comp < 0.65) & (v_comp > 0.7) & (v_comp < 0.8)
+    #Create a mask for the red sign
+    segm_red = (h_comp > 0.95)
+    return segm_blue, segm_red
+
+# %% Test of function
+segm_blue, segm_red = HSV_detect_dtu_signs(img_org)
+fig, axs=plt.subplots(1,2)
+axs[0].imshow(segm_blue)
+axs[1].imshow(segm_red)
+#We also get the red signs in the background!
+
+
 # %%
