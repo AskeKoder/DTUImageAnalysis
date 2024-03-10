@@ -43,13 +43,17 @@ def process_gray_image(img):
     img_proc = gamma_map(img_proc, 2)
     return img_as_ubyte(img_proc)
 
-
+from skimage.transform import rescale, resize
 def detect_plants(img):
     """
     Simple processing of a color (RGB) image
     """
     # Copy the image information so we do not change the original image
     proc_img = img.copy()
+    scaleFactor =  400 / proc_img.shape[1]
+    image_w400 = resize( proc_img, (proc_img.shape[0] * scaleFactor,
+                       proc_img.shape[1] * scaleFactor),
+                       anti_aliasing=True)
     proc_img = color.rgb2hsv(proc_img)
     hcomp = proc_img[:, :, 0]
     scomp = proc_img[:, :, 1]
@@ -76,7 +80,7 @@ def capture_from_camera_and_show_images():
     old_time = time.perf_counter()
     fps = 0
     stop = False
-    process_rgb = True
+    process_rgb = False
     while not stop:
         ret, new_frame = cap.read()
         if not ret:
@@ -90,7 +94,7 @@ def capture_from_camera_and_show_images():
         if process_rgb:
             proc_img = detect_plants(new_image)
             # convert back to OpenCV BGR to show it
-            proc_img = proc_img[:, :, ::-1]
+            #proc_img = proc_img[:, :, ::-1] #not necessary here
         else:
             proc_img = process_gray_image(new_image_gray)
 
