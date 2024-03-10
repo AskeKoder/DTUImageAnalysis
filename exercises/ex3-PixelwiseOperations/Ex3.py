@@ -282,4 +282,7 @@ axs[1].imshow(segm_red)
 #We also get the red signs in the background!
 
 
+# %% Function that connects to a camera
+
+
 # %%
