@@ -51,14 +51,12 @@ def detect_plants(img):
     # Copy the image information so we do not change the original image
     proc_img = img.copy()
     scaleFactor =  400 / proc_img.shape[1]
-    image_w400 = resize( proc_img, (proc_img.shape[0] * scaleFactor,
-                       proc_img.shape[1] * scaleFactor),
-                       anti_aliasing=True)
     proc_img = color.rgb2hsv(proc_img)
     hcomp = proc_img[:, :, 0]
     scomp = proc_img[:, :, 1]
     vcomp = proc_img[:, :, 2]
     plant_mask = (hcomp > 0.2) & (hcomp < 0.3) & (scomp > 0.6)
+    plant_mask = img_as_ubyte(plant_mask)
     return plant_mask
 
 
@@ -80,7 +78,7 @@ def capture_from_camera_and_show_images():
     old_time = time.perf_counter()
     fps = 0
     stop = False
-    process_rgb = False
+    process_rgb = True
     while not stop:
         ret, new_frame = cap.read()
         if not ret:

@@ -285,4 +285,23 @@ axs[1].imshow(segm_red)
 # %% Function that connects to a camera
 
 
-# %%
+# %% Explorative analysis to identify plants in an image
+img_org = io.imread('Plants.jpg')
+io.imshow(img_org)
+
+io.imshow(img_org[700:1200,1400:1600,2])
+img_hsv = color.rgb2hsv(img_org)
+#%%
+fig, axs=plt.subplots(1,3)
+io.imshow(img_hsv[700:1200,1400:1600,0],ax=axs[0])
+io.imshow(img_hsv[700:1200,1400:1600,1],ax=axs[1])
+io.imshow(img_hsv[700:1200,1400:1600,2],ax=axs[2])
+plt.show()
+
+ph = profile_line(img_hsv[:,:,0], (1000,1400), (1000, 1600))
+ps = profile_line(img_hsv[:,:,1], (1000,1400), (1000, 1600))
+pv = profile_line(img_hsv[:,:,2], (1000,1400), (1000, 1600))
+plt.plot(ph, 'b')
+plt.plot(ps, color='r')
+plt.plot(pv, color='g')
+
