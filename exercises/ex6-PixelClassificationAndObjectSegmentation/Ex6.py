@@ -45,9 +45,6 @@ plt.show()
 mu_spleen = np.mean(spleen_values)
 std_spleen = np.std(spleen_values)
 
-print(f"Average HU: {AvgHU}")
-print(f"Standard deviation HU: {sdHU}")
-
 # Mean a bit lower than expected
 # Standard deviation is quite high as well
 #Histogram looks gaussian
@@ -95,14 +92,14 @@ classes = ['Background','Bone','Trabec','Fat',
 #Compute class ranges
 class_means = []
 soft_vals = np.zeros(3)
+i=0
 for organ in organs:
     mask = io.imread(in_dir + organ + 'ROI.png') > 0
     values = img[mask]
     mu = np.mean(values)
     std = np.std(values)
-    i = 0
     if organ == 'Kidney' or organ == 'Spleen' or organ == 'Liver':
-        soft_vals.append(values,)
+        soft_vals = np.concatenate((soft_vals, values))
         i += 1 
         if i == 3:
             mu = np.mean(soft_vals)
@@ -113,6 +110,42 @@ for organ in organs:
 #%% Compute class ranges by shifting all cells and dividing by two
 
 t_background = -200
-t_soft = 
+t_fat = -30
+t_soft = 91.0
+t_trabec = 453
+class_ranges = [t_background, t_fat, t_soft, t_trabec]
 
-# %%
+# Show separation in histogram
+plt.figure()
+for organ in organs:
+    mask = io.imread(in_dir + organ + 'ROI.png') > 0
+    values = img[mask]
+    mu = np.mean(values)
+    std = np.std(values)
+    n, bins, patches = plt.hist(values, 60, density=1,
+                                 alpha=0.3, color=colors[organs.index(organ)])
+    pdf = norm.pdf(bins, mu, std)
+    plt.plot(bins, pdf, color=colors[organs.index(organ)], label=organ)
+
+plt.legend()
+plt.xlim(-200, 1000) # Exclude background pixels
+for class_range in class_ranges:
+    plt.axvline(class_range, color='black')
+plt.show()
+
+
+# Create class images
+background_img = img < t_background
+fat_img = (img >= t_background) & (img < t_fat)
+soft_img = (img >= t_fat) & (img < t_soft)
+trabec_img = (img >= t_soft) & (img < t_trabec)
+bone_img = img >= t_trabec
+
+#Print result
+label_img = fat_img + 2 * soft_img + 3 * bone_img + 4 * trabec_img
+image_label_overlay = label2rgb(label_img)
+show_comparison(img, image_label_overlay, 'Classification result')
+
+
+# %% Parametric classification =================================================
+
