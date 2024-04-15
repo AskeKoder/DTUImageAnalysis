@@ -148,4 +148,29 @@ show_comparison(img, image_label_overlay, 'Classification result')
 
 
 # %% Parametric classification =================================================
+#New threshold values base on the intersections of the gaussians
+plt.figure()
+for organ in organs:
+    mask = io.imread(in_dir + organ + 'ROI.png') > 0
+    values = img[mask]
+    mu = np.mean(values)
+    std = np.std(values)
+    n, bins, patches = plt.hist(values, 60, density=1,
+                                 alpha=0.3, color=colors[organs.index(organ)])
+    pdf = norm.pdf(bins, mu, std)
+    plt.plot(bins, pdf, color=colors[organs.index(organ)], label=organ)
 
+#Change xlim to see the intersection
+plt.xlim(50, 400) # Exclude background pixels
+plt.legend()
+
+t_background = -200
+t_fat = -40
+t_soft = 85
+t_trabec = 300
+class_ranges = [t_background, t_fat, t_soft, t_trabec]
+background_img = img < t_background
+fat_img = (img >= t_background) & (img < t_fat)
+soft_img = (img >= t_fat) & (img < t_soft)
+trabec_img = (img >= t_soft) & (img < t_trabec)
+bone_img = img >= t_trabec

@@ -247,6 +247,7 @@ plt.title("First spleen estimate")
 io.show()
 ```
 
+
 to show your first spleen estimate. As can be seen, there a many non-spleen areas in the result. The spleen is also connected to another anatomy. 
 
 Luckily, we can use [morphological operations](https://github.com/RasmusRPaulsen/DTUImageAnalysis/tree/main/exercises/ex4b-ImageMorphology) to fix these issues:
