@@ -9,6 +9,8 @@ from skimage.color import label2rgb
 import pydicom as dicom
 from scipy.stats import norm
 from scipy.spatial import distance
+import os
+os.chdir(r'C:\Users\askeb\OneDrive - Danmarks Tekniske Universitet\DTU\9. Semester\Image analysis\Scripts og data\DTUImageAnalysis\exercises\ex6-PixelClassificationAndObjectSegmentation_mangler')
 
 #%% Given functions
 def show_comparison(original, modified, modified_name):
@@ -245,5 +247,140 @@ image_label_overlay_ParCla = label2rgb(label_img)
 show_comparison(image_label_overlay_minDist,image_label_overlay_ParCla, 'Classification result')
 
 
-#%% Object segmentation
+#%% Ex 11: Object segmentation - the spleen finder
+in_dir = "data/"
+ct = dicom.read_file(in_dir + 'Training.dcm')
+img = ct.pixel_array
+io.imshow(img,vmin=np.min(img),vmax=np.max(img))
+io.imshow(img, vmin=-50, vmax=150, cmap='gray')
+io.show()
+spleen_roi = io.imread(in_dir + 'SpleenROI.png')
+spleen_mask = spleen_roi > 0
+spleen_values = img[spleen_mask]
+plt.hist(spleen_values, bins=100)
+plt.show()
+mu_spleen = np.mean(spleen_values)
+std_spleen = np.std(spleen_values)
 
+# %% Create spleen thresholds from histogram 
+t_1 = 10
+t_2 = 90
+spleen_estimate = (img > t_1) & (img < t_2)
+spleen_label_colour = color.label2rgb(spleen_estimate)
+io.imshow(spleen_label_colour)
+plt.title("First spleen estimate")
+io.show()
+# %% Clean up with morphological operations
+from skimage.morphology import binary_closing, binary_opening
+from skimage.morphology import disk 
+footprint = disk(1)
+closed = binary_closing(spleen_estimate, footprint)
+
+footprint = disk(5)
+opened = binary_opening(closed, footprint)
+io.imshow(opened)
+
+# %% Use blob analysis to find features for the separated objects
+label_img = measure.label(opened)
+io.imshow(label_img)
+#Succesful separation of the spleen
+# What is special for the spleen?
+region_props = measure.regionprops(label_img)
+
+min_area = 4400
+max_area = 4500
+#Filter the label image
+label_img_filter = label_img.copy()
+for region in region_props:
+	# Find the areas that do not fit our criteria
+	if region.area > max_area or region.area < min_area:
+		# set the pixels in the invalid areas to background
+		for cords in region.coords:
+			label_img_filter[cords[0], cords[1]] = 0
+# Create binary image from the filtered label image
+i_area = label_img_filter > 0
+show_comparison(img, i_area, 'Found spleen based on area')
+# %% Extend method above to include more por features
+min_area = 4000
+max_area = 5000
+min_ecc = 0.85
+min_orientation = -0.4
+max_orientation = -0.2
+#Filter the label image
+label_img_filter = label_img.copy()
+for region in region_props:
+	# Find the areas that do not fit our criteria
+	if region.area > max_area or region.area < min_area or region.eccentricity < min_ecc or region.orientation < min_orientation or region.orientation > max_orientation:
+		# set the pixels in the invalid areas to background
+		for cords in region.coords:
+			label_img_filter[cords[0], cords[1]] = 0
+# Create binary image from the filtered label image
+i_area = label_img_filter > 0
+show_comparison(img, i_area, 'Found spleen based on area')
+
+#How much of the spleen did we miss?
+from skimage.util import img_as_float
+io.imshow(img+i_area*(-150), vmin=-50, vmax=150, cmap='gray')
+io.show()
+#Its a matter of pixels
+
+# %% Function to identify spleen
+from skimage.morphology import binary_closing, binary_opening
+def spleen_finder(img):
+    #Identify soft tissue
+    t_1 = 10
+    t_2 = 90
+    spleen_estimate = (img > t_1) & (img < t_2)
+
+    #Fill and separate the organs
+    footprint = disk(1)
+    closed = binary_closing(spleen_estimate, footprint)
+    footprint = disk(5)
+    opened = binary_opening(closed, footprint)
+
+    #Blob analysis
+    label_img = measure.label(opened)
+    region_props = measure.regionprops(label_img)
+    min_area = 3500
+    max_area = 5300
+    min_ecc = 0.8
+    min_orientation = -0.5
+    max_orientation = -0.2
+    #Filter the label image
+    label_img_filter = label_img.copy()
+    for region in region_props:
+        # Find the areas that do not fit our criteria
+        if region.area > max_area or region.area < min_area or region.eccentricity < min_ecc or region.orientation < min_orientation or region.orientation > max_orientation:
+            # set the pixels in the invalid areas to background
+            for cords in region.coords:
+                label_img_filter[cords[0], cords[1]] = 0
+    # Create binary image from the filtered label image
+    i_area = label_img_filter > 0
+    return i_area
+
+
+#%% Test the function
+test1 = dicom.read_file(in_dir + 'Validation1.dcm').pixel_array
+test2 = dicom.read_file(in_dir + 'Validation2.dcm').pixel_array
+test3 = dicom.read_file(in_dir + 'Validation3.dcm').pixel_array
+
+spleen1 = spleen_finder(test1)
+spleen2 = spleen_finder(test2)
+spleen3 = spleen_finder(test3)
+
+io.imshow(test1+spleen1*150, vmin=-50, vmax=150, cmap='gray')
+io.show()
+io.imshow(test2+spleen2*150, vmin=-50, vmax=150, cmap='gray')
+io.show()
+io.imshow(test3+spleen3*150, vmin=-50, vmax=150, cmap='gray')
+io.show()
+
+print(f'Number of pixels in spleen 1: {np.sum(spleen1)}')
+print(f'Number of pixels in spleen 2: {np.sum(spleen2)}')
+print(f'Number of pixels in spleen 3: {np.sum(spleen3)}')
+
+# It identifies the spleen in all three images! 
+#%% DICE score! 
+     
+
+# %%
