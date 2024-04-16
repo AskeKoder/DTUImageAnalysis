@@ -91,6 +91,7 @@ classes = ['Background','Bone','Trabec','Fat',
 
 #Compute class ranges
 class_means = []
+class_stds = []
 soft_vals = np.zeros(3)
 i=0
 for organ in organs:
@@ -103,9 +104,12 @@ for organ in organs:
         i += 1 
         if i == 3:
             mu = np.mean(soft_vals)
+            std = np.std(soft_vals)
             class_means.append(mu)
+            class_stds.append(std)
     else:
         class_means.append(mu)
+        class_stds.append(std)
 
 #%% Compute class ranges by shifting all cells and dividing by two
 
@@ -143,8 +147,8 @@ bone_img = img >= t_trabec
 
 #Print result
 label_img = fat_img + 2 * soft_img + 3 * bone_img + 4 * trabec_img
-image_label_overlay = label2rgb(label_img)
-show_comparison(img, image_label_overlay, 'Classification result')
+image_label_overlay_minDist = label2rgb(label_img)
+show_comparison(img, image_label_overlay_minDist, 'Classification result')
 
 
 # %% Parametric classification =================================================
@@ -174,3 +178,72 @@ fat_img = (img >= t_background) & (img < t_fat)
 soft_img = (img >= t_fat) & (img < t_soft)
 trabec_img = (img >= t_soft) & (img < t_trabec)
 bone_img = img >= t_trabec
+
+label_img = fat_img + 2 * soft_img + 3 * bone_img + 4 * trabec_img
+image_label_overlay_ParCla = label2rgb(label_img)
+show_comparison(image_label_overlay_minDist,image_label_overlay_ParCla, 'Classification result')
+
+
+
+# %% Find optimal class ranges between fat soft tissue and bone
+#Compute class ranges
+class_means = []
+class_stds = []
+soft_vals = np.zeros(3)
+bone_vals = np.zeros(2)
+i=0
+j=0
+for organ in organs:
+    mask = io.imread(in_dir + organ + 'ROI.png') > 0
+    values = img[mask]
+    mu = np.mean(values)
+    std = np.std(values)
+    if organ == 'Kidney' or organ == 'Spleen' or organ == 'Liver':
+        soft_vals = np.concatenate((soft_vals, values))
+        i += 1 
+        if i == 3:
+            mu = np.mean(soft_vals)
+            std = np.std(soft_vals)
+            class_means.append(mu)
+            class_stds.append(std)
+    elif organ == 'Trabec' or organ == 'Bone':
+        bone_vals = np.concatenate((bone_vals, values))
+        j += 1
+        if j==2:
+            mu = np.mean(bone_vals)
+            std = np.std(bone_vals)
+            class_means.append(mu)
+            class_stds.append(std)
+    else:
+        class_means.append(mu)
+        class_stds.append(std)
+
+#Get values for the classes
+mu_background, mu_bone,mu_fat, mu_soft = class_means
+std_background, std_bone,std_fat, std_soft = class_stds
+for test_value in range(-100,164):
+    if (norm.pdf(test_value, mu_soft, std_soft) > norm.pdf(test_value, mu_bone, std_bone)) & (norm.pdf(test_value, mu_soft, std_soft) > norm.pdf(test_value, mu_fat, std_fat)):
+        print(f"For value {test_value} the class is soft tissue")
+    elif norm.pdf(test_value, mu_bone, std_bone) > norm.pdf(test_value, mu_fat, std_fat):
+        print(f"For value {test_value} the class is bone")
+    else:
+        print(f"For value {test_value} the class is fat")
+
+t_background = -200
+t_fat = -71
+t_bone1 = 4
+t_soft = 80
+
+background_img = img < t_background
+fat_img = (img >= t_background) & (img < t_fat)
+bone_img1 = (img >= t_fat) & (img < t_bone1)
+soft_img = (img >= t_bone1) & (img < t_soft)
+bone_img2 = img >= t_soft
+
+label_img = fat_img + 2 * soft_img + 3 * (bone_img1+bone_img2) 
+image_label_overlay_ParCla = label2rgb(label_img)
+show_comparison(image_label_overlay_minDist,image_label_overlay_ParCla, 'Classification result')
+
+
+#%% Object segmentation
+
