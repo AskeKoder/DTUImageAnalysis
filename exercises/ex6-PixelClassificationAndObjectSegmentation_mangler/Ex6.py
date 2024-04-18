@@ -380,7 +380,33 @@ print(f'Number of pixels in spleen 2: {np.sum(spleen2)}')
 print(f'Number of pixels in spleen 3: {np.sum(spleen3)}')
 
 # It identifies the spleen in all three images! 
-#%% DICE score! 
+#%% DICE score! Evaluate the model
+ground_truth_img = io.imread(in_dir + 'Validation3_spleen.png')
+gt_bin = ground_truth_img > 0
+dice_score = 1 - distance.dice(spleen3.ravel(), gt_bin.ravel())
+print(f"DICE score {dice_score}")
+
+#Validate spleen finder output
+ValDice=[0.96,0.97,0.98]
      
+
+# %% Test algorithm on independent test set
+test1 = dicom.read_file(in_dir + 'Test1.dcm').pixel_array
+test2 = dicom.read_file(in_dir + 'Test2.dcm').pixel_array
+test3 = dicom.read_file(in_dir + 'Test3.dcm').pixel_array
+
+#Find spleens
+spleen1 = spleen_finder(test1)
+spleen2 = spleen_finder(test2)
+spleen3 = spleen_finder(test3)
+
+ground_truth_img = io.imread(in_dir + 'Test3_spleen.png')
+gt_bin = ground_truth_img > 0
+dice_score = 1 - distance.dice(spleen3.ravel(), gt_bin.ravel())
+print(f"DICE score {dice_score}")
+
+#Test spleen finder output
+TestDice=[0,0.95,0]
+#So not very good on the test set
 
 # %%
