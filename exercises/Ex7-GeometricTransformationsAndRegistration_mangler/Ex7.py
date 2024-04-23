@@ -21,7 +21,7 @@ def show_comparison(original, transformed, transformed_name):
     io.show()
 
 import os
-os.chdir(r'C:\Users\askeb\OneDrive - Danmarks Tekniske Universitet\DTU\9. Semester\Image analysis\Scripts og data\DTUImageAnalysis\exercises\Ex7-GeometricTransformationsAndRegistration')
+os.chdir(r'C:\Users\askeb\OneDrive - Danmarks Tekniske Universitet\DTU\9. Semester\Image analysis\Scripts og data\DTUImageAnalysis\exercises\Ex7-GeometricTransformationsAndRegistration_mangler')
 
 #%% Image rotation
 # Load an image
@@ -120,6 +120,9 @@ plt.plot(src[:, 0], src[:, 1], '.r', markersize=12)
 plt.show()
 
 # %% Exercise 13 :Now place landmarks on destination image
-io.imshow(dst_img)
-dst = np.array([])
+dst = np.array([[588, 274], [328, 179], [134, 398], [260, 525], [613, 448]])
+plt.imshow(dst_img)
+plt.plot(src[:, 0], src[:, 1], '.r', markersize=12)
+plt.show()
+
 # %%

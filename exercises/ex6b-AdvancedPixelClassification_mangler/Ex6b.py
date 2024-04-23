@@ -42,7 +42,7 @@ plt.show()
 plt.figure()
 plt.plot(ImgT1[ImgT2>20], ImgT2[ImgT2>20],'.', color="blue", label='GM')
 
-# %% Show the exper drawings
+# %% Show the expert drawings
 C1 = ROI_WM
 C2 = ROI_GM
 

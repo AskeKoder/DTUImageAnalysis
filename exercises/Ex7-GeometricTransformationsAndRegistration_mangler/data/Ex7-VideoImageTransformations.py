@@ -3,6 +3,7 @@ import cv2
 from skimage.transform import swirl
 from skimage.transform import rotate
 import math
+from skimage.transform import swirl
 
 
 def show_in_moved_window(win_name, img, x, y):
@@ -18,7 +19,9 @@ def process_rgb_image(img, counter):
     """
     Simple processing of a color (RGB) image
     """
-    return rotate(img, counter)
+    str = 0.1 * counter
+    rad = 10*counter
+    return swirl(im_org, strength=str, radius=rad, center=[300, 400])
 
 
 def capture_from_camera_and_show_images():
@@ -26,9 +29,9 @@ def capture_from_camera_and_show_images():
 
     print("Opening connection to camera")
     url = 0
-    use_droid_cam = False
+    use_droid_cam = True
     if use_droid_cam:
-        url = "http://192.168.1.120:4747/video"
+        url = "http://10.126.115.201.4747/video"
     cap = cv2.VideoCapture(url)
     if not cap.isOpened():
         print("Cannot open camera")
