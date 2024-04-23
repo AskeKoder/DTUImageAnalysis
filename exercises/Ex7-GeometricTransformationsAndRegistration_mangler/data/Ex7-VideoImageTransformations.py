@@ -21,7 +21,7 @@ def process_rgb_image(img, counter):
     """
     str = 0.1 * counter
     rad = 10*counter
-    return swirl(im_org, strength=str, radius=rad, center=[300, 400])
+    return swirl(img, strength=str, radius=rad, center=[300, 400])
 
 
 def capture_from_camera_and_show_images():
@@ -31,7 +31,7 @@ def capture_from_camera_and_show_images():
     url = 0
     use_droid_cam = True
     if use_droid_cam:
-        url = "http://10.126.115.201.4747/video"
+        url = "http://10.126.115.201:4747/video"
     cap = cv2.VideoCapture(url)
     if not cap.isOpened():
         print("Cannot open camera")
@@ -72,7 +72,7 @@ def capture_from_camera_and_show_images():
 
         # Display the resulting frame
         show_in_moved_window('Input', new_frame, 0, 10)
-        show_in_moved_window('Processed image', proc_img, 1200, 10)
+        show_in_moved_window('Processed image', proc_img, 600, 10)
 
         if cv2.waitKey(1) == ord('q'):
             stop = True
