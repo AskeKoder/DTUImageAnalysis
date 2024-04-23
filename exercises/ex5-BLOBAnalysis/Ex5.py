@@ -9,6 +9,7 @@ from skimage import measure
 from skimage.color import label2rgb
 import os
 import matplotlib.pyplot as plt
+os.chdir(r'C:\Users\askeb\OneDrive - Danmarks Tekniske Universitet\DTU\9. Semester\Image analysis\Scripts og data\DTUImageAnalysis\exercises\ex5-BLOBAnalysis_mangler')
 
 #%% Function to show images side by side 
 def show_comparison(original, modified, modified_name):
@@ -169,4 +170,59 @@ show_comparison(img_small, i_area_circularity, 'Found nuclei based on area and c
 new_labels = measure.label(i_area_circularity)
 print(f"Number of cells: {np.max(new_labels)}")
 
+# %% Test method on larger set
+in_dir = "data/"
+file = "Sample G1 - COS7 cells DAPI channel.tiff"
+im_org = io.imread(in_dir + file)
+im_org.shape
+
+# slice to extract smaller image and convert to greyscale
+im_small = im_org[0:500, 1400:1900]
+im_gray = img_as_ubyte(im_small) 
+show_comparison(im_org, im_small, 'DAPI Stained U2OS cell nuclei')
+io.imshow(im_gray, vmin=0, vmax=80)
+
+#Apply Otsu thresholding
+thresh = threshold_otsu(im_gray)
+im_thresh = im_gray > thresh
+show_comparison(im_gray, im_thresh, 'Thresholded')
+
+#Handle overlaps with opening
+footprint = disk(2)
+im_opened = morphology.opening(im_thresh, footprint)
+show_comparison(im_thresh, im_opened, 'Opened')
+
+#Remove border blobs
+im_no_border = segmentation.clear_border(im_thresh)
+label_im = measure.label(im_no_border)
+image_label_overlay = label2rgb(label_im)
+show_comparison(im_opened, image_label_overlay, 'Found BLOBS')
+
+#Compute object features
+region_props = measure.regionprops(label_im)
+areas = np.array([prop.area for prop in region_props])
+perimeters = np.array([prop.perimeter for prop in region_props])
+circularity = 4 * np.pi * areas / perimeters ** 2
+
+# Filtering based on circularity and area
+min_area = 50
+max_area = 125
+min_circularity = 0.85
+max_circularity = 1.15
+
+#apply filter
+print(f"Number of cells before filtering: {np.max(label_im)}")
+label_img_filter = label_im
+for region in region_props:
+    # Find the areas that do not fit our criteria
+    if region.area > max_area or region.area < min_area or circularity[region.label - 1] > max_circularity or circularity[region.label - 1] < min_circularity:
+        # set the pixels in the invalid areas to background
+        for cords in region.coords:
+            label_img_filter[cords[0], cords[1]] = 0
+# Create binary image from the filtered label image
+i_area_circularity = img_as_ubyte(label_img_filter > 0)
+show_comparison(im_small, i_area_circularity, 'Found nuclei based on area and circularity')
+
+new_labels = measure.label(i_area_circularity)
+print(f"Number of cells: {np.max(new_labels)}")
 # %%
