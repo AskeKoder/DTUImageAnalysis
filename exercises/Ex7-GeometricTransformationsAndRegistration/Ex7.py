@@ -120,9 +120,50 @@ plt.plot(src[:, 0], src[:, 1], '.r', markersize=12)
 plt.show()
 
 # %% Exercise 13 :Now place landmarks on destination image
-dst = np.array([[588, 274], [328, 179], [134, 398], [260, 525], [613, 448]])
+dst = np.array([[624,297], [380,158], [196,272], [275,438], [596, 449]])
 plt.imshow(dst_img)
-plt.plot(src[:, 0], src[:, 1], '.r', markersize=12)
+plt.plot(dst[:, 0], dst[:, 1], '.r', markersize=12)
 plt.show()
 
+fig, ax = plt.subplots()
+ax.plot(src[:, 0], src[:, 1], '-r', markersize=12, label="Source")
+ax.plot(dst[:, 0], dst[:, 1], '-g', markersize=12, label="Destination")
+ax.invert_yaxis()
+ax.legend()
+ax.set_title("Landmarks before alignment")
+plt.show()
+# %% Compute objective function ( How well they are aligned)
+e_x = src[:, 0] - dst[:, 0]
+error_x = np.dot(e_x, e_x)
+e_y = src[:, 1] - dst[:, 1]
+error_y = np.dot(e_y, e_y)
+f = error_x + error_y
+print(f"Landmark alignment error F: {f}")
+
+# %% Transform the image with euclidean transformation
+tform = EuclideanTransform()
+tform.estimate(src, dst)
+src_transform = src @ tform.params[:2, :2].T + tform.params[0:2, 2]
+
+fig, ax = plt.subplots()
+ax.plot(src_transform[:, 0], src_transform[:, 1], '-r', markersize=12, label="Source")
+ax.plot(dst[:, 0], dst[:, 1], '-g', markersize=12, label="Destination")
+ax.invert_yaxis()
+ax.legend()
+ax.set_title("Landmarks before alignment")
+plt.show()
+
+e_x = src_transform[:, 0] - dst[:, 0]
+error_x = np.dot(e_x, e_x)
+e_y = src_transform[:, 1] - dst[:, 1]
+error_y = np.dot(e_y, e_y)
+f = error_x + error_y
+print(f"Landmark alignment error after tform F: {f}")
+#Much better fit
+
+# %% Apply transformation to the source image
+warped = warp(src_img, tform.inverse)
+blend = 0.5 * img_as_float(warped) + 0.5 * img_as_float(dst_img)
+plt.imshow(blend)
+#Better fit
 # %%
