@@ -296,6 +296,7 @@ ImgT1_B = sitk.Resample(ImgT1_A, tform_reg)
 sitk.WriteImage(ImgT1_B, dir_in + 'ImgT1_B.nii')
 
 # %% Show the estimated transformation
+imshow_orthogonal_view(ImgT1_B, title='T1_B.nii')
 overlay_slices(vol_sitk, ImgT1_B, title = 'ImgT1 (red) vs. ImgT1_B (green)')
 
 estimated_tform = tform_reg.GetNthTransform(0).GetMatrix() # Transform matrix
@@ -331,12 +332,238 @@ tform_loaded = sitk.ReadTransform(dir_in + 'A1.tfm')
 # %% Move the center of rotation to the center of fixed image and rerun
 initTransform = sitk.CenteredTransformInitializer(vol_sitk, ImgT1_A, sitk.Euler3DTransform(),
                                                    sitk.CenteredTransformInitializerFilter.GEOMETRY)
-
+R.SetInitialTransform(initTransform, inPlace=False)
 # Estimate the registration transformation [metric, optimizer, transform]
 tform_reg = R.Execute(vol_sitk, ImgT1_A)
 
 # Apply the estimated transformation to the moving image
 ImgT1_C = sitk.Resample(ImgT1_A, tform_reg)
+
+#%% display
+imshow_orthogonal_view(ImgT1_C, title='T1_C.nii')
+overlay_slices(vol_sitk, ImgT1_C, title = 'ImgT1 (red) vs. ImgT1_C (green)')
+
 # %%
 params = tform_reg.GetParameters()
 print(f'Estimated parameters: {params}')
+
+# %% Series of rotated 3d images
+ImgT1 = sitk.ReadImage(dir_in + 'ImgT1.nii')
+imshow_orthogonal_view(ImgT1, title='T1.nii')
+
+for rot in [60,120,180,240]:
+    #Create rotation matrix
+    A = rotation_matrix(rot,0,0)
+    #Create affine transformation
+    transform = sitk.AffineTransform(3)
+
+    centre_image = np.array(ImgT1.GetSize()) / 2 - 0.5 # Image Coordinate System
+    centre_world = ImgT1.TransformContinuousIndexToPhysicalPoint(centre_image) # World Coordinate System
+    rot_matrix = A[:3, :3] # SimpleITK inputs the rotation and the translation separately
+
+    transform.SetCenter(centre_world) # Set the rotation centre
+    transform.SetMatrix(rot_matrix.T.flatten())
+
+    # Apply the transformation to the image and display
+    temp = sitk.Resample(ImgT1, transform)
+    imshow_orthogonal_view(temp, title=f'T1_{rot}.nii')
+
+    # Save the rotated images
+    sitk.WriteImage(temp, dir_in + f'ImgT1_{rot}.nii')
+
+
+# %% Identify rotations
+
+#Set method
+R = sitk.ImageRegistrationMethod()
+# Set a one-level the pyramid scheule. [Pyramid step]
+R.SetShrinkFactorsPerLevel(shrinkFactors = [2])
+R.SetSmoothingSigmasPerLevel(smoothingSigmas=[0])
+R.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+# Set the interpolator [Interpolation step]
+R.SetInterpolator(sitk.sitkLinear)
+
+# Set the similarity metric [Metric step]
+R.SetMetricAsMeanSquares()
+
+# Set the sampling strategy [Sampling step]
+R.SetMetricSamplingStrategy(R.RANDOM)
+R.SetMetricSamplingPercentage(0.50)
+
+# Set the optimizer [Optimization step]
+R.SetOptimizerAsPowell(stepLength=20, numberOfIterations=25)
+
+
+
+fixed_Im = sitk.ReadImage(dir_in + 'ImgT1_120.nii')
+
+# Estimate the registration transformation [metric, optimizer, transform]
+for rot in [60,180,240]:
+    moving_Im = sitk.ReadImage(dir_in + f'ImgT1_{rot}.nii')
+
+    # Set the initial transform 
+    initTransform =sitk.CenteredTransformInitializer(fixed_Im, moving_Im, sitk.Euler3DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
+    R.SetInitialTransform(initTransform, inPlace=False)
+
+    # register tranformation
+    tform_reg = R.Execute(fixed_Im, moving_Im)
+
+    params = tform_reg.GetParameters() 
+    angles = params[:3]
+    print(f'Estimated rotation (deg) for ImgT1_{angle}.nii: ')
+    print(np.round(np.rad2deg(angles), 3))
+
+    # Apply the estimated transformation to the moving image [reslice?]
+    temp = sitk.Resample(moving_Im, tform_reg)
+    
+    #Display before after
+    overlay_slices(fixed_Im, temp, title = 'fixed(red) vs. moving after rotation(green)')
+
+    #Save transformations
+    tform_reg.WriteTransform(dir_in + f'Ex9_{rot}.tfm')
+
+
+#%% Check transformations
+tform_60 = sitk.ReadTransform(dir_in + 'Ex9_60.tfm')
+tform_180 = sitk.ReadTransform(dir_in + 'Ex9_180.tfm')
+tform_240 = sitk.ReadTransform(dir_in + 'Ex9_240.tfm')
+
+params = tform_60.GetParameters()
+angles = params[:3]
+print(f'Estimated rotation (deg): ')
+print(np.round(np.rad2deg(angles), 2))
+
+params = tform_180.GetParameters()
+angles = params[:3]
+print(f'Estimated rotation (deg): ')
+print(np.round(np.rad2deg(angles), 2))
+
+params = tform_240.GetParameters()
+angles = params[:3]
+print(f'Estimated rotation (deg): ')
+print(np.round(np.rad2deg(angles), 2))
+
+
+# %% Ex 10
+fixed_Im = sitk.ReadImage(dir_in + 'ImgT1_240.nii')
+moving_Im = sitk.ReadImage(dir_in + 'ImgT1.nii')
+
+# Set the registration method
+R = sitk.ImageRegistrationMethod()
+# Set the metric
+R.SetMetricAsMeanSquares()
+
+# Set the optimizer
+R.SetOptimizerAsPowell(stepLength=10, numberOfIterations=25)
+
+# Set the pyramid scheule
+R.SetShrinkFactorsPerLevel(shrinkFactors = [2])
+R.SetSmoothingSigmasPerLevel(smoothingSigmas=[0])
+R.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+# Set the sampling strategy
+R.SetMetricSamplingStrategy(R.RANDOM)
+R.SetMetricSamplingPercentage(0.20)
+
+# Set the initial transform
+R.SetInterpolator(sitk.sitkLinear)
+
+# Some extra functions to help with the iteration
+R.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(R))
+
+# Set the initial transform 
+initTransform =sitk.CenteredTransformInitializer(fixed_Im, moving_Im, sitk.Euler3DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
+R.SetInitialTransform(initTransform, inPlace=False)
+
+# Execute the registration
+tform_reg = R.Execute(fixed_Im, moving_Im)
+tform_reg.WriteTransform(dir_in + 'Ex10_0.tfm')
+
+params = tform_reg.GetParameters()
+angles = params[:3]
+print('Estimated rotation (deg) for ImgT1.nii: ')
+print(np.round(np.rad2deg(angles), 3))
+
+img_tmp = sitk.Resample(moving_Im, tform_reg)
+# imshow_orthogonal_view(img_tmp, title='Registered ImgT1.nii to ImgT1_240.nii')
+overlay_slices(fixed_Im, img_tmp, title='Registered ImgT1.nii to ImgT1_240.nii')
+
+#%%
+params = tform_reg.GetParameters()
+angles = params[:3]
+print(f'Estimated rotation (deg): ')
+print(np.round(np.rad2deg(angles), 2))
+
+#%%
+moving_Im = sitk.ReadImage(dir_in+'ImgT1.nii')
+
+# Load the transformations
+tform_60 = sitk.ReadTransform(dir_in + 'Ex9_60.tfm')
+tform_180 = sitk.ReadTransform(dir_in + 'Ex9_180.tfm')
+tform_240 = sitk.ReadTransform(dir_in + 'Ex9_240.tfm')
+tform_0 = sitk.ReadTransform(dir_in + 'Ex10_0.tfm')
+
+# Concatenate - The last added transform is applied first
+tform_composite = sitk.CompositeTransform(3)
+
+tform_composite.AddTransform(tform_240.GetNthTransform(0)) 
+tform_composite.AddTransform(tform_180.GetNthTransform(0))
+tform_composite.AddTransform(tform_60.GetNthTransform(0))
+tform_composite.AddTransform(tform_0.GetNthTransform(0))
+
+# Apply the estimated transformation to the moving image
+ImgT1_D = sitk.Resample(moving_Im, tform_composite)
+imshow_orthogonal_view(ImgT1_D)
+
+
+# %% Ex 11 ======================================================================
+fixed_Im = sitk.ReadImage(dir_in + 'ImgT1.nii')
+moving_Im = sitk.ReadImage(dir_in + 'ImgT1_240.nii')
+
+#Add noise
+moving_Im = sitk.AdditiveGaussianNoise(moving_Im, mean=0, standardDeviation=500)
+imshow_orthogonal_view(moving_Im, title='Moving image with noise')
+
+# %% Run registration
+
+# Set the registration method
+R = sitk.ImageRegistrationMethod()
+# Set the metric
+R.SetMetricAsMeanSquares()
+
+# Set the optimizer
+R.SetOptimizerAsPowell(stepLength=20, numberOfIterations=25)
+
+# Set the pyramid scheule
+R.SetShrinkFactorsPerLevel(shrinkFactors = [2,2,2])
+R.SetSmoothingSigmasPerLevel(smoothingSigmas=[3.0, 1.0, 0.0])
+R.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+# Set the sampling strategy
+R.SetMetricSamplingStrategy(R.RANDOM)
+R.SetMetricSamplingPercentage(0.20)
+
+# Set the initial transform
+R.SetInterpolator(sitk.sitkLinear)
+
+# Some extra functions to help with the iteration
+R.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(R))
+
+# Set the initial transform 
+initTransform =sitk.CenteredTransformInitializer(fixed_Im, moving_Im, sitk.Euler3DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
+R.SetInitialTransform(initTransform, inPlace=False)
+
+# Execute the registration
+tform_reg = R.Execute(fixed_Im, moving_Im)
+
+#Display
+img_tmp = sitk.Resample(moving_Im, tform_reg)
+overlay_slices(fixed_Im,img_tmp, title='Registered ImgT1_240.nii to ImgT1.nii')
+
+params = tform_reg.GetParameters()
+angles = params[:3]
+print('Estimated rotation (deg) for ImgT1.nii: ')
+print(np.round(np.rad2deg(angles), 3))
+
+# %%
